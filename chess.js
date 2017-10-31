@@ -1,12 +1,15 @@
 class chess {
     constructor(opts) {
-        this.width = 750;
-        this.height = 750;
-        this.lineWidth = 50;
+        this.redoEl = opts.redoEl || document.getElementById('redo')
+        this.undoEl = opts.undoEl || document.getElementById('undo')
+        this.successModal = opts.successModal || document.getElementById('modal')
+        this.width = opts.width || 750;
+        this.height = opts.height || 750;
+        this.lineWidth = this.width / 15;
         this.startPos = [0, 0];
-        this.endPos = [750, 750];
+        this.endPos = [this.width, this.height];
         this.ctx = null;
-        this.chessPieceR = 15;
+        this.chessPieceR = opts.chessR || 15;
         this.container = opts.container || document.getElementById('myCanvas');
         //判断棋的颜色
         this.shouldRun = 'white';
@@ -17,11 +20,23 @@ class chess {
         this.generateChessBoard();
         const me = this;
         document.addEventListener('click', function(e) {
-            console.log(1)
             if (me.lock) return;
             let pos = me.getChessPiecePos(e);
             me.drawChessPiece(pos);
         })
+
+        this.redoUndoInit();
+        this.redoEl && this.redoEl.addEventListener('click', function (e) {
+            if (me.lock) return;
+            e.stopPropagation();
+            me.doRedo();
+        });
+
+        this.undoEl && this.undoEl.addEventListener('click', function (e) {
+            if (me.lock) return;
+            e.stopPropagation();
+            me.doUndo();
+        });
     }
 
     generateChessBoard() {
@@ -49,8 +64,8 @@ class chess {
     }
 
     getChessPiecePos(e) {
-        let x = e.pageX;
-        let y = e.pageY;
+        let x = e.pageX - this.container.offsetLeft;
+        let y = e.pageY - this.container.offsetTop;
         let posX = Math.round(x / this.lineWidth);
         let posY = Math.round(y / this.lineWidth);
         return [posX, posY];
@@ -61,7 +76,7 @@ class chess {
         let arr = this.chessPiecePosCollection;
         let isAlreadyChessPiece = false;
         for (let i = 0; i < length; i++) {
-            if (arr.indexOf(`${pos[0]}${pos[1]}black`) > -1 || arr.indexOf(`${pos[0]}${pos[1]}white`) > -1) {
+            if (arr.indexOf(this.getChessKey(pos, 'black')) > -1 || arr.indexOf(this.getChessKey(pos, 'white')) > -1) {
                 isAlreadyChessPiece = true;
                 break;
             }
@@ -69,7 +84,7 @@ class chess {
         return isAlreadyChessPiece;
     }
 
-    drawChessPiece(pos) {
+    drawChessPiece(pos, color) {
         if (this.isAlreadyChessPiece(pos)) return;
         const me = this;
         this.ctx.beginPath();
@@ -77,11 +92,16 @@ class chess {
         let realPathY = pos[1] * this.lineWidth;
         this.ctx.moveTo(realPathX, realPathY);
         this.ctx.arc(realPathX, realPathY, this.chessPieceR, 0, Math.PI * 2, true);
-        this.ctx.fillStyle= this.shouldRun == 'white' ? "#efefef" : "#000000";
+        this.ctx.fillStyle= (color || this.shouldRun) == 'white' ? "#efefef" : "#000000";
         this.ctx.fill(); 
-        let key = `${pos[0]}${pos[1]}${this.shouldRun}`
+        let key = this.getChessKey(pos, color);
         this.chessPiecePosCollection.push(key);
         this.checkWin(pos);
+        this.redoCommandQueue.push({
+            method: 'delete',
+            key: key
+        });
+        this.index++;
         this.changeShouldRun();  
     }
 
@@ -93,33 +113,160 @@ class chess {
         let arr = this.chessPiecePosCollection;
         let countTop = 1;
         let countBottom = 1;
-        //往上读取五个点
+        let countRight = 1;
+        let countLeft = 1;
+        let lean = {
+            rightTop: 1,
+            rightDown: 1,
+            leftTop: 1,
+            leftDown: 1,
+        } 
         for (let i = 0 ;i < length; i++) {
-            if (arr.indexOf(`${pos[0]}${pos[1] + countTop }${this.shouldRun}`) > -1) {
+            //往上读取五个点
+            if (arr.indexOf(this.getChessKey([pos[0], pos[1] + countBottom])) > -1) {
+                countBottom++;
+                if (countBottom >= 5) {
+                    this.doSuccess()
+                    break;
+                }  
+            }
+            //向下
+            if (arr.indexOf(this.getChessKey([pos[0], pos[1] - countTop ])) > -1) {
                 countTop++;
                 if (countTop >= 5) {
                     this.doSuccess()
                     break;
                 }  
             }
-            if (arr.indexOf(`${pos[0]}${pos[1] - countBottom }${this.shouldRun}`) > -1) {
-                countBottom++;
-                if (countBottom >= 5) {
+            //向左
+            if (arr.indexOf(this.getChessKey([pos[0] + countRight, pos[1]])) > -1) {
+                countRight++;
+                if (countRight >= 5) {
                     this.doSuccess()
                     break;
                 }  
-            } 
+            }
+            //向右
+            if (arr.indexOf(this.getChessKey([pos[0] - countLeft, pos[1]])) > -1) {
+                countLeft++;
+                if (countLeft >= 5) {
+                    this.doSuccess()
+                    break;
+                }  
+            }
+            //斜右下
+            if (arr.indexOf(this.getChessKey([pos[0] + lean.rightTop, pos[1] + lean.rightTop])) > -1) {
+                lean.rightTop++;
+                if (lean.rightTop >= 5) {
+                    this.doSuccess()
+                    break;
+                }  
+            }
+            //斜右上
+            if (arr.indexOf(this.getChessKey([pos[0] + lean.rightDown, pos[1] - lean.rightDown])) > -1) {
+                lean.rightDown++;
+                if (lean.rightDown >= 5) {
+                    this.doSuccess()
+                    break;
+                }  
+            }
+            //斜左下
+            if (arr.indexOf(this.getChessKey([pos[0] - lean.leftDown, pos[1] + lean.leftDown])) > -1) {
+                lean.leftDown++;
+                if (lean.leftDown >= 5) {
+                    this.doSuccess()
+                    break;
+                }  
+            }
+            //斜左上
+            if (arr.indexOf(this.getChessKey([pos[0] - lean.leftTop, pos[1] - lean.leftTop])) > -1) {
+                lean.leftTop++;
+                if (lean.leftTop >= 5) {
+                    this.doSuccess()
+                    break;
+                }  
+            }
+            if (countTop + countBottom + countRight + countLeft == 4 
+                && lean.rightTop + lean.leftTop + lean.rightDown + lean.leftDown == 4) {
+                break;
+            }
+        }
+        //识别插入棋子
+        if (countTop + countBottom - 1 >= 5 
+            || countRight + countLeft - 1 >= 5
+            || lean.rightTop + lean.leftTop - 1 >= 5
+            || lean.rightDown + lean.leftDown - 1 >= 5
+        ) {
+            this.doSuccess()
         }
     }
 
     doSuccess() {
         this.lock = true;
         let msg = this.shouldRun == 'white' ? '白' : '黑';
-        alert(`${msg}棋胜利`);
+        if (this.successModal && this.successModal.style) {
+            this.successModal.style.display = "block";
+            this.successModal.innerHTML = `${msg}棋胜利 !!!`;
+            this.successModal.style.lineHeight = this.height + 'px';
+            this.successModal.style.width = this.width + 'px';
+        }
     }
 
     changeShouldRun() {
         this.shouldRun = this.shouldRun == 'white' ? 'black' : 'white';
+    }
+
+    getChessKey(pos, color) {
+        return JSON.stringify({
+            pos: pos,
+            color: color || this.shouldRun
+        })
+    }
+
+    deleteChessPiece(pos) {
+        let key = this.getChessKey(pos);
+        let index = this.chessPiecePosCollection.indexOf(key);
+        this.chessPiecePosCollection.splice(index, 1);
+        this.refreshCanvas();
+    }
+
+    refreshCanvas() {
+        let chesses = [];
+        this.chessPiecePosCollection.forEach(function(item) {
+            let chess = JSON.parse(item);
+            chesses.push(chess);
+        }, this);
+        this.chessPiecePosCollection = [];
+        this.index = 0;
+        this.redoCommandQueue = [];
+        this.generateChessBoard();
+        chesses.forEach(function(chess) {
+            this.drawChessPiece(chess.pos, chess.color);
+        }, this);
+    }
+
+    redoUndoInit() {
+        this.index = 0;
+        this.redoCommandQueue = [];
+        this.undoCommandQueue = [];
+    }
+
+    doRedo() {
+        if (!this.redoCommandQueue.length) return;
+        let command = this.redoCommandQueue[--this.index];
+        let key = JSON.parse(command.key);
+        this[command.method + 'ChessPiece'](key.pos);
+        this.undoCommandQueue.push({
+            method: 'draw',
+            key: JSON.stringify(key)
+        });
+    }
+    doUndo() {
+        if (!this.undoCommandQueue.length) return;
+        let command = this.undoCommandQueue[0];
+        let key = JSON.parse(command.key);
+        this[command.method + 'ChessPiece'](key.pos);
+        this.undoCommandQueue.splice(0, 1);
     }
 
 }
