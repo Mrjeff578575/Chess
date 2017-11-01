@@ -26,6 +26,8 @@ class chess {
         document.addEventListener('click', function(e) {
             if (me.lock) return;
             if (me.shouldRun == 'black' && me.isUseAI) return;
+            if (e.target && e.target.tagName != 'CANVAS') return;
+            me.isStart = true;
             let pos = me.getChessPiecePos(e);
             me.drawChessPiece(pos);
         })
@@ -97,6 +99,7 @@ class chess {
     }
 
     drawChessPiece(pos, color = this.shouldRun, isRefresh = false) {
+        console.log(color)
         if (this.isAlreadyChessPiece(pos)) return;
         const me = this;
         this.ctx.beginPath();
@@ -104,7 +107,7 @@ class chess {
         let realPathY = pos[1] * this.lineWidth + this.chessPieceR;
         this.ctx.moveTo(realPathX, realPathY);
         this.ctx.arc(realPathX, realPathY, this.chessPieceR, 0, Math.PI * 2, true);
-        this.ctx.fillStyle= color == 'white' ? "#efefef" : "#000000";
+        this.ctx.fillStyle = color == 'white' ? "#efefef" : "#000000";
         this.ctx.fill(); 
         let key = this.getChessKey(pos, color);
         this.chessPiecePosCollection.push(key);
