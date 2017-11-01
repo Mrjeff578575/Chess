@@ -1,4 +1,4 @@
-class chess {
+class Chess {
     constructor(opts) {
         this.redoEl = opts.redoEl || document.getElementById('redo')
         this.undoEl = opts.undoEl || document.getElementById('undo')
@@ -25,10 +25,11 @@ class chess {
         const me = this;
         document.addEventListener('click', function(e) {
             if (me.lock) return;
-            if (me.shouldRun == 'black' && me.isUseAI) return;
+            //if (me.shouldRun == 'black' && me.isUseAI) return;
             if (e.target && e.target.tagName != 'CANVAS') return;
             me.isStart = true;
             let pos = me.getChessPiecePos(e);
+            me.undoCommandQueue = [];
             me.drawChessPiece(pos);
         })
 
@@ -116,7 +117,7 @@ class chess {
             key: key
         });
         this.index++;
-        this.changeShouldRun(); 
+        this.changeShouldRun(color); 
         //IF USE AI 
         //Ai绘制
         if (this.shouldRun == 'black' && this.isUseAI && !isRefresh) {
@@ -235,8 +236,8 @@ class chess {
         }
     }
 
-    changeShouldRun() {
-        this.shouldRun = this.shouldRun == 'white' ? 'black' : 'white';
+    changeShouldRun(color = this.shouldRun) {
+        this.shouldRun = color == 'white' ? 'black' : 'white';
     }
 
     getChessKey(pos, color = this.shouldRun) {
@@ -278,7 +279,7 @@ class chess {
         if (!this.redoCommandQueue.length) return;
         let command = this.redoCommandQueue[--this.index];
         let key = JSON.parse(command.key);
-        this[command.method + 'ChessPiece'](key.pos);
+        this[command.method + 'ChessPiece'](key.pos, key.color);
         this.undoCommandQueue.push({
             method: 'draw',
             key: JSON.stringify(key)
@@ -288,9 +289,9 @@ class chess {
         if (!this.undoCommandQueue.length) return;
         let command = this.undoCommandQueue[0];
         let key = JSON.parse(command.key);
-        this[command.method + 'ChessPiece'](key.pos, undefined, true);
+        this[command.method + 'ChessPiece'](key.pos, key.color, true);
         this.undoCommandQueue.splice(0, 1);
     }
 
 }
-window.chess = chess
+window.chess = Chess
