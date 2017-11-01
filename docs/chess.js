@@ -99,7 +99,6 @@ class chess {
     }
 
     drawChessPiece(pos, color = this.shouldRun, isRefresh = false) {
-        console.log(color)
         if (this.isAlreadyChessPiece(pos)) return;
         const me = this;
         this.ctx.beginPath();
