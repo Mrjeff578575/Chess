@@ -218,9 +218,6 @@ class Chess {
             || lean.rightTop + lean.leftDown - 1 >= 5
             || lean.rightDown + lean.leftTop - 1 >= 5
         ) {
-            console.log(pos)
-            console.log({countTop,countRight,countBottom,countLeft})
-            console.log(lean)
             this.doSuccess()
         }
     }
