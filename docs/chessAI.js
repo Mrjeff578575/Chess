@@ -20,7 +20,12 @@
             if (!this.chessData[pos[0]]) {
                 this.chessData[pos[0]] = [];
             }
-            this.chessData[pos[0]][pos[1]] = 1;
+            if (chess.color == 'white') {
+                this.chessData[pos[0]][pos[1]] = 1;// 1 mean white
+            } else {
+                this.chessData[pos[0]][pos[1]] = 2;// 2 mean black
+            }
+
         })
     }
     //遍历所有的位置，获取分数最高的位置
