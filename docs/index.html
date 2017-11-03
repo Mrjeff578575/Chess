@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>五子棋</title>
+    <style>
+        .button {
+            display: inline-block;
+            line-height: 1;
+            white-space: nowrap;
+            cursor: pointer;
+            background: #fff;
+            border: 1px solid #d8dce5;
+            border-color: #d8dce5;
+            color: #5a5e66;
+            -webkit-appearance: none;
+            text-align: center;
+            box-sizing: border-box;
+            outline: none;
+            margin: 0;
+            transition: .1s;
+            font-weight: 500;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            padding: 12px 20px;
+            font-size: 14px;
+            color: #fff;
+            background-color: #409eff;
+            border-color: #409eff;
+            border-radius: 20px;
+            padding: 12px 23px;
+        }
+    </style>
+</head>
+<body style="text-align: center;">
+    <div style="margin-bottom: 20px;">
+        <button class="button" id="redo">悔棋</button>
+        <button class="button" id="undo">撤销悔棋</button>
+        <button class="button" id="cancelAi">切换人机</button>
+        <span id="aiStatus">当前状态: 人机</span>
+    </div> 
+    <div id="modal" style="display: none;position: absolute;margin: 0 auto;left: 0;right: 0;background: rgba(239, 239, 239, 0.78);line-height: 750px;font-size: 22px;">
+        白棋胜利！！！
+    </div>
+    <canvas id="myCanvas" style="background: #d7ac8a;"></canvas>
+</body>
+<script type="text/javascript" src="./chess.js"></script>
+<script type="text/javascript" src="./chessAI.js"></script>
+<script type="text/javascript" >
+    let container = document.getElementById('myCanvas');
+    let chessClass =  window.chess;
+    let chessAI = window.ChessAI;
+    let chessBoard = new chessClass({
+        container: container,//棋盘容器
+        redoEl: document.getElementById('redo'),//悔棋按钮
+        undoEl: document.getElementById('undo'),//撤销悔棋按钮
+        width: 750, //棋盘宽度
+        height: 750, //棋盘高度
+        chessR: 15, //棋子半径
+        successModal: document.getElementById('modal'), //赢棋提示,
+        isUseAI: true,
+        chessAI: ChessAI
+    });
+    let cancelButton = document.getElementById('cancelAi');
+    cancelButton.addEventListener('click', function() {
+        if (chessBoard.isStart) {
+            alert('游戏已经开始，无法切换人机状态');
+            cancelButton.setAttribute('disabled', true);
+            return;
+        }
+        chessBoard.isUseAI = !chessBoard.isUseAI
+        document.getElementById('aiStatus').innerHTML = `当前状态: ${chessBoard.isUseAI ? '' : '非'}人机`;
+    })
+
+</script>
+</html>
